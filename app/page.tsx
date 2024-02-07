@@ -1,15 +1,8 @@
 import Image from "next/image";
-import { XMLParser } from "fast-xml-parser";
-
-const parser = new XMLParser();
+import getForecast from "./lib/getForecast";
 
 export default async function Home() {
-  const xmlFetch = await fetch(
-    "https://forecast.weather.gov/MapClick.php?lat=38.8443&lon=-106.3136&FcstType=digitalDWML"
-  );
-  const xmlText = await xmlFetch.text();
-  const obj = parser.parse(xmlText);
-  console.log(obj.dwml);
+  await getForecast();
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-between p-24">
