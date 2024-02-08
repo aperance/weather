@@ -17,7 +17,7 @@ const schema = z.object({
         temperature: z
           .array(
             z.object({
-              value: valuesSchema(z.number().optional()),
+              value: valuesSchema(z.number().nullable().default(null)),
               type: z.string(),
             })
           )
@@ -83,9 +83,9 @@ const schema = z.object({
     .pipe(
       z.object({
         labels: z.array(z.date()),
-        temperature: z.array(z.number().optional()),
-        windChill: z.array(z.number().optional()),
-        dewPoint: z.array(z.number().optional()),
+        temperature: z.array(z.number().nullable()),
+        windChill: z.array(z.number().nullable()),
+        dewPoint: z.array(z.number().nullable()),
         humidity: z.array(z.number().optional()),
         precipitation: z.array(z.number().optional()),
         cloudCover: z.array(z.number().optional()),
@@ -119,4 +119,6 @@ export default async function getForecast() {
   console.log(obj.data);
   const validatedObj = schema.parse(obj);
   console.log(validatedObj);
+
+  return validatedObj;
 }
