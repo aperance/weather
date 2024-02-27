@@ -1,57 +1,16 @@
 "use client";
 
 import React from "react";
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend,
-  ChartData,
-} from "chart.js";
-import { Line } from "react-chartjs-2";
+import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis } from "recharts";
 
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend
-);
-
-export default function Chart(
-  data: ChartData<"line", (number | null)[], unknown>
-) {
+export default function Chart(props: { data: any[] }) {
   return (
-    <Line
-      options={{
-        responsive: true,
-        scales: {
-          yAxisID: {
-            type: "linear",
-            position: "left",
-            title: {
-              display: true,
-              text: "Temperature (F)",
-            },
-          },
-        },
-        plugins: {
-          legend: {
-            position: "bottom",
-          },
-          title: {
-            display: true,
-            text: "Chart.js Line Chart",
-          },
-        },
-      }}
-      data={data}
-    />
+    <ResponsiveContainer width="100%" height={200}>
+      <BarChart data={props.data}>
+        <XAxis dataKey="timestamp" />
+        <YAxis />
+        <Bar dataKey="temperature" label fill="#8884d8" />
+      </BarChart>
+    </ResponsiveContainer>
   );
 }

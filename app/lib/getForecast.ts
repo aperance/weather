@@ -1,46 +1,40 @@
 import { XMLParser } from "fast-xml-parser";
 import { z } from "zod";
 
-const valuesSchema = (type: z.ZodTypeAny) =>
-  z.array(z.object({ node: type }).transform((o) => o.node));
-
-const valueArrayToObject = (arr: any[]) =>
-  Object.fromEntries(arr.map(({ type, value }) => [type, value]));
-
 const schema = z.object({
   data: z
     .object({
       "time-layout": z.object({
-        "start-valid-time": valuesSchema(z.coerce.date()),
+        "start-valid-time": z.array(z.object({ node: z.coerce.date() })),
       }),
       parameters: z.object({
-        temperature: z
-          .array(
-            z.object({
-              value: valuesSchema(z.number().nullable().default(null)),
-              type: z.string(),
-            })
-          )
-          .transform(valueArrayToObject),
-        "wind-speed": z
-          .array(
-            z.object({
-              value: valuesSchema(z.number().optional()),
-              type: z.string(),
-            })
-          )
-          .transform(valueArrayToObject),
+        temperature: z.array(
+          z.object({
+            value: z.array(z.object({ node: z.number().nullish() })),
+            type: z.union([
+              z.literal("hourly"),
+              z.literal("wind chill"),
+              z.literal("dew point"),
+            ]),
+          })
+        ),
+        "wind-speed": z.array(
+          z.object({
+            value: z.array(z.object({ node: z.number().nullish() })),
+            type: z.string(),
+          })
+        ),
         "probability-of-precipitation": z.object({
-          value: valuesSchema(z.number().optional()),
+          value: z.array(z.object({ node: z.number().nullish() })),
         }),
         "cloud-amount": z.object({
-          value: valuesSchema(z.number().optional()),
+          value: z.array(z.object({ node: z.number().nullish() })),
         }),
         humidity: z.object({
-          value: valuesSchema(z.number().optional()),
+          value: z.array(z.object({ node: z.number().nullish() })),
         }),
         direction: z.object({
-          value: valuesSchema(z.number().optional()),
+          value: z.array(z.object({ node: z.number().nullish() })),
         }),
         weather: z.object({
           "weather-conditions": z.array(
@@ -58,44 +52,63 @@ const schema = z.object({
         }),
       }),
     })
-    .transform((obj) => ({
-      labels: obj["time-layout"]["start-valid-time"],
-      temperature: obj.parameters.temperature.hourly,
-      windChill: obj.parameters.temperature["wind chill"],
-      dewPoint: obj.parameters.temperature["dew point"],
-      humidity: obj.parameters.humidity.value,
-      precipitation: obj.parameters["probability-of-precipitation"].value,
-      cloudCover: obj.parameters["cloud-amount"].value,
-      windDirection: obj.parameters.direction.value,
-      windSustained: obj.parameters["wind-speed"].sustained,
-      windGusts: obj.parameters["wind-speed"].gust,
-      rain: obj.parameters.weather["weather-conditions"].map(
-        ({ value }) => value.find(({ type }) => type === "rain")?.coverage ?? ""
-      ),
-      thunderstorms: obj.parameters.weather["weather-conditions"].map(
-        ({ value }) =>
-          value.find(({ type }) => type === "thunderstorms")?.coverage ?? ""
-      ),
-      snow: obj.parameters.weather["weather-conditions"].map(
-        ({ value }) => value.find(({ type }) => type === "snow")?.coverage ?? ""
-      ),
-    }))
+    .transform((obj) => {
+      const labels = obj["time-layout"]["start-valid-time"];
+      const temperature = Object.fromEntries(
+        obj.parameters.temperature.map(({ type, value }) => [type, value])
+      );
+      return labels.map((label, i) => ({
+        label: label.node,
+        temperature: temperature["hourly"][i].node ?? null,
+        windChill:
+          obj.parameters.temperature.find(({ type }) => type === "wind chill")
+            ?.value[i].node ?? null,
+        dewPoint:
+          obj.parameters.temperature.find(({ type }) => type === "dew point")
+            ?.value[i].node ?? null,
+        humidity: obj.parameters.humidity.value[i].node ?? null,
+        precipitation:
+          obj.parameters["probability-of-precipitation"].value[i].node ?? null,
+        cloudCover: obj.parameters["cloud-amount"].value[i].node ?? null,
+        windDirection: obj.parameters.direction.value[i].node ?? null,
+        windSustained:
+          obj.parameters["wind-speed"].find(({ type }) => type === "sustained")
+            ?.value[i].node ?? null,
+        windGusts:
+          obj.parameters["wind-speed"].find(({ type }) => type === "gust")
+            ?.value[i].node ?? null,
+        rain: obj.parameters.weather["weather-conditions"].map(
+          ({ value }) =>
+            value.find(({ type }) => type === "rain")?.coverage ?? ""
+        )[i],
+        thunderstorms: obj.parameters.weather["weather-conditions"].map(
+          ({ value }) =>
+            value.find(({ type }) => type === "thunderstorms")?.coverage ?? ""
+        )[i],
+        snow: obj.parameters.weather["weather-conditions"].map(
+          ({ value }) =>
+            value.find(({ type }) => type === "snow")?.coverage ?? ""
+        )[i],
+      }));
+    })
     .pipe(
-      z.object({
-        labels: z.array(z.date()),
-        temperature: z.array(z.number().nullable()),
-        windChill: z.array(z.number().nullable()),
-        dewPoint: z.array(z.number().nullable()),
-        humidity: z.array(z.number().optional()),
-        precipitation: z.array(z.number().optional()),
-        cloudCover: z.array(z.number().optional()),
-        windDirection: z.array(z.number().optional()),
-        windSustained: z.array(z.number().optional()),
-        windGusts: z.array(z.number().optional()),
-        rain: z.array(z.string()),
-        thunderstorms: z.array(z.string()),
-        snow: z.array(z.string()),
-      })
+      z.array(
+        z.object({
+          label: z.date(),
+          temperature: z.number().nullable(),
+          windChill: z.number().nullable(),
+          dewPoint: z.number().nullable(),
+          humidity: z.number().nullable(),
+          precipitation: z.number().nullable(),
+          cloudCover: z.number().nullable(),
+          windDirection: z.number().nullable(),
+          windSustained: z.number().nullable(),
+          windGusts: z.number().nullable(),
+          rain: z.string(),
+          thunderstorms: z.string(),
+          snow: z.string(),
+        })
+      )
     ),
 });
 

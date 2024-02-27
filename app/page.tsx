@@ -1,33 +1,14 @@
-import Image from "next/image";
-import getForecast from "./lib/getForecast";
 import Chart from "./components/Chart";
+import getForecast from "./lib/getForecast";
 
 export default async function Home() {
   const forecast = await getForecast();
 
+  const temperature = forecast.data.slice(0, 30);
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <Chart
-        labels={forecast.data.labels.map((date) =>
-          date.toLocaleString("en-US", {
-            timeStyle: "short",
-          })
-        )}
-        datasets={[
-          {
-            data: forecast.data.temperature,
-            label: "Temperature",
-            borderColor: "green",
-            // yAxisID: "yAxisID",
-          },
-          {
-            data: forecast.data.windChill,
-            label: "Wind Chill",
-            borderColor: "blue",
-            // yAxisID: "yAxisID",
-          },
-        ]}
-      />
+    <main className="flex flex-col h-screen p-24 gap-10">
+      <Chart data={temperature} />
     </main>
   );
 }
